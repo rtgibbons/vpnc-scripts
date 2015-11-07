@@ -309,8 +309,13 @@ else # use route command
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
+		if [ -n $4 ]; then
+			GATEWAY="$4"
+		else
+			GATEWAY="$INTERNAL_IP4_ADDRESS"
+		fi
 		del_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN"
-		route add -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$INTERNAL_IP4_ADDRESS" $route_syntax_interface
+		route add -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$GATEWAY" $route_syntax_interface
 	}
 
 	reset_default_route() {
@@ -724,6 +729,21 @@ do_connect() {
 	elif [ -n "$INTERNAL_IP6_NETMASK" -o -n "$INTERNAL_IP6_ADDRESS" ]; then
 		set_ipv6_default_route
 	fi
+	if [ -n "$CISCO_SPLIT_EXC" ]; then
+			i=0
+			LOCALGATEWAY=`tail -n1 "$DEFAULT_ROUTE_FILE"`
+			while [ $i -lt $CISCO_SPLIT_EXC ] ; do
+				eval NETWORK="\${CISCO_SPLIT_EXC_${i}_ADDR}"
+				eval NETMASK="\${CISCO_SPLIT_EXC_${i}_MASK}"
+				eval NETMASKLEN="\${CISCO_SPLIT_EXC_${i}_MASKLEN}"
+				# FIXME: This doesn't exclude the defualt route, i.e split-tunneling.
+				#        not sure if this is needed or not
+				if [ "$NETWORK" != "0.0.0.0" ]; then
+					set_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "$LOCALGATEWAY"
+				fi
+				i=`expr $i + 1`
+			done
+	fi
 
 	if [ -n "$INTERNAL_IP4_DNS" ]; then
 		$MODIFYRESOLVCONF
@@ -769,6 +789,20 @@ do_disconnect() {
 		done
 	elif [ -n "$INTERNAL_IP6_NETMASK" -o -n "$INTERNAL_IP6_ADDRESS" ]; then
 		reset_ipv6_default_route
+	fi
+	if [ -n "$CISCO_SPLIT_EXC" ]; then
+		i=0
+		while [ $i -lt $CISCO_SPLIT_EXC ] ; do
+			eval NETWORK="\${CISCO_SPLIT_EXC_${i}_ADDR}"
+			eval NETMASK="\${CISCO_SPLIT_EXC_${i}_MASK}"
+			eval NETMASKLEN="\${CISCO_SPLIT_EXC_${i}_MASKLEN}"
+			if [ "$NETWORK" != "0.0.0.0" ]; then
+				# FIXME: This doesn't restore previously overwritten
+				#        routes.
+				del_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN"
+			fi
+			i=`expr $i + 1`
+		done
 	fi
 
 	del_vpngateway_route
