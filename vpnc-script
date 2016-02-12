@@ -328,12 +328,15 @@ else # use route command
 	}
 
 	del_network_route() {
-		case "$OS" in
-		Linux|NetBSD|OpenBSD|Darwin|SunOS) # and probably others...
-			# routes are deleted automatically on device shutdown
-			return
-			;;
-		esac
+		# Allow us to force the deletion, primarly for CISCO_SPLIT_EXC
+		if [ $4 != "force" ]; then
+			case "$OS" in
+			Linux|NetBSD|OpenBSD|Darwin|SunOS) # and probably others...
+				# routes are deleted automatically on device shutdown
+				return
+				;;
+			esac
+		fi
 		NETWORK="$1"
 		NETMASK="$2"
 		NETMASKLEN="$3"
@@ -800,7 +803,7 @@ do_disconnect() {
 			if [ "$NETWORK" != "0.0.0.0" ]; then
 				# FIXME: This doesn't restore previously overwritten
 				#        routes.
-				del_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN"
+				del_network_route "$NETWORK" "$NETMASK" "$NETMASKLEN" "force"
 			fi
 			i=`expr $i + 1`
 		done
