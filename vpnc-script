@@ -287,7 +287,8 @@ else # use route command
 		# isn't -n supposed to give --numeric output?
 		# apperently not...
 		# Get rid of lines containing IPv6 addresses (':')
-		netstat -r -n | awk '/:/ { next; } /^(default|0\.0\.0\.0)/ { print $2; }'
+		# Exit after first print (OSX will assign a default gateway for each device)
+		netstat -r -n | awk '/:/ { next; } /^(default|0\.0\.0\.0)/ { print $2; exit}'
 	}
 
 	set_vpngateway_route() {
