@@ -329,18 +329,18 @@ else # use route command
 
 	del_network_route() {
 		# Allow us to force the deletion, primarly for CISCO_SPLIT_EXC
-		if [ $4 != "force" ]; then
-			case "$OS" in
-			Linux|NetBSD|OpenBSD|Darwin|SunOS) # and probably others...
-				# routes are deleted automatically on device shutdown
-				return
-				;;
-			esac
+		if [[ "forcex" == "$4x" ]]; then
+			NETWORK="$1"
+			NETMASK="$2"
+			NETMASKLEN="$3"
+			route $route_syntax_del -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$INTERNAL_IP4_ADDRESS"
 		fi
-		NETWORK="$1"
-		NETMASK="$2"
-		NETMASKLEN="$3"
-		route $route_syntax_del -net "$NETWORK" $route_syntax_netmask "$NETMASK" $route_syntax_gw "$INTERNAL_IP4_ADDRESS"
+		case "$OS" in
+		Linux|NetBSD|OpenBSD|Darwin|SunOS) # and probably others...
+			# routes are deleted automatically on device shutdown
+			return
+			;;
+		esac
 	}
 
 	set_ipv6_default_route() {
